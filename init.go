@@ -1,31 +1,41 @@
 package logo
 
 import (
+	"fmt"
 	"log/slog"
-	"os"
 
-	"github.com/murouse/logo/core"
 	"github.com/murouse/logo/handlers"
 	"go.uber.org/zap/exp/zapslog"
-	"go.uber.org/zap/zapcore"
 )
 
 func init() {
-	Init() // Дефолтная инициализация
+	// Автоматическая базовая инициализация при импорте пакета.
+	// Гарантирует, что slog не запаникует и будет писать в понятном формате даже до явного вызова Init().
+	_ = Init()
 }
 
-// Init инициализирует вручную
-func Init(opts ...Option) {
-	cfg := DefaultConfig()
-	for _, opt := range opts {
-		opt(cfg)
+// Init выполняет ручную оркестрацию: собирает низкоуровневый Zap, оборачивает его в zapslog.Handler,
+// строит упорядоченный конвейер обработки и делает его дефолтным для всего Go-приложения.
+func Init(opts ...Option) error {
+	cfg, err := DefaultWith(opts...)
+	if err != nil {
+		return fmt.Errorf("default with: %w", err)
 	}
 
-	// Core
-	zapLogger := core.NewZapLogger(toZapLevel(cfg.Level.Level()), cfg.UseJSON)
-	handler := slog.Handler(zapslog.NewHandler(zapLogger.Core(), zapslog.WithCaller(true)))
+	zapLogger := NewZapLogger(LevelToZapLevel(cfg.Level), cfg.Format) // Создаем производительный фундамент (Zap)
 
-	// Middlewares
+	baseHandler := zapslog.NewHandler(zapLogger.Core(), zapslog.WithCaller(cfg.WithCaller)) // Создаем адаптер-мост из zap в стандартный интерфейс slog.Handler
+
+	handler := slog.Handler(baseHandler) // Приведение к интерфейсу slog.Handler необходимо, чтобыMiddleware-обертки могли прозрачно мутировать типы
+
+	// Если задано имя сервиса, пришиваем его к базовому хендлеру
+	if cfg.ServiceName != nil {
+		handler = handler.WithAttrs([]slog.Attr{Service(*cfg.ServiceName)})
+	}
+
+	// Собираем декораторы (Middleware) по принципу Матрешки (внутри -> наружу).
+	// Порядок применения важен: ContextAttrsHandler должен отработать ДО BufferHandler,
+	// чтобы буфер увидел уже обогащенные контекстом записи.
 	for _, middleware := range []Middleware{
 		handlers.NewContextAttrsHandler,
 		handlers.NewBufferHandler,
@@ -33,27 +43,10 @@ func Init(opts ...Option) {
 		handler = middleware(handler)
 	}
 
+	// Инжектим собранный пайплайн в стандартную библиотеку Go в качестве глобального логгера
 	slog.SetDefault(slog.New(handler))
+	return nil
 }
 
-func toZapLevel(l slog.Level) zapcore.Level {
-	return zapcore.Level(l) // Простой маппинг slog.Level -> zapcore.Level
-}
-
+// Middleware описывает контракт обертки над хендлером slog, позволяя строить цепочки (Pipeline pattern).
 type Middleware func(slog.Handler) slog.Handler
-
-func NewHandler(cfg *Config) slog.Handler {
-	var handler slog.Handler
-	opts := &slog.HandlerOptions{
-		Level:     cfg.Level,
-		AddSource: cfg.AddSource,
-	}
-
-	if cfg.UseJSON {
-		handler = slog.NewJSONHandler(os.Stdout, opts)
-	} else {
-		handler = slog.NewTextHandler(os.Stdout, opts)
-	}
-
-	return handler
-}

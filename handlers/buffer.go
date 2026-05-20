@@ -11,37 +11,45 @@ import (
 	"github.com/murouse/logo/logctx"
 )
 
+// Byter предоставляет потокобезопасный доступ к накопленным байтам лога в рамках одной бизнес-операции.
 type Byter interface {
 	Bytes() []byte
 }
 
+// safeBuffer защищает bytes.Buffer мьютексом для бесконфликтной параллельной записи из разных горутин.
 type safeBuffer struct {
 	sync.Mutex
 	bytes.Buffer
 }
 
+// WithBufferLog активирует "запись в память" для текущего контекста.
+// Все последующие логи процесса будут дублироваться в возвращаемый Byter.
 func WithBufferLog(ctx context.Context) (context.Context, Byter) {
 	buf := &safeBuffer{}
-	ctx = context.WithValue(ctx, bufferLogKey, buf)
+	ctx = context.WithValue(ctx, bufferCtxKey, buf)
 	return ctx, buf
 }
 
-var bufferLogKey struct{}
+// bufferCtxKey предотвращает коллизии ключей контекста между пакетами
+var bufferCtxKey struct{}
 
+// BufferHandler — декоратор, дублирующий структурированные логи приложения
+// в текстовый буфер контекста (полезно для отладки конкретных транзакций/запросов).
 type BufferHandler struct {
 	slog.Handler
 }
 
+// NewBufferHandler инициализирует слой перехвата логов в буфер.
 func NewBufferHandler(next slog.Handler) slog.Handler {
 	return &BufferHandler{next}
 }
 
+// Handle отправляет запись в основной логгер и, при наличии буфера в контексте, форматирует лог в плоский текст.
 func (h *BufferHandler) Handle(ctx context.Context, rec slog.Record) error {
-	// пишем в основной лог
-	err := h.Handler.Handle(ctx, rec)
+	err := h.Handler.Handle(ctx, rec) // Первым делом пишем лог в основной поток (Stdout)
 
-	// дублируем в process-log, если он есть
-	if buf, ok := ctx.Value(bufferLogKey).(*safeBuffer); ok {
+	// Проверяем, включено ли трассировочное логирование в буфер для этого контекста
+	if buf, ok := ctx.Value(bufferCtxKey).(*safeBuffer); ok {
 		buf.Lock()
 		defer buf.Unlock()
 
@@ -49,18 +57,18 @@ func (h *BufferHandler) Handle(ctx context.Context, rec slog.Record) error {
 
 		fmt.Fprintf(buf, "[%s] %s - %s", ts, rec.Level, rec.Message)
 
-		// атрибуты из контекста (помещаются в атрибуты лога только в next хендлере)
+		// Извлекаем и форматируем накопленный контекст (RequestID, UserID и т.д.)
 		for _, a := range logctx.AttrsFromContext(ctx) {
 			fmt.Fprintf(buf, " [%s=%s]", a.Key, a.Value)
 		}
 
-		// атрибуты конкретно этого лога
+		// Извлекаем локальные атрибуты текущей строки логирования
 		rec.Attrs(func(a slog.Attr) bool {
 			fmt.Fprintf(buf, " [%s=%s]", a.Key, a.Value)
 			return true
 		})
 
-		buf.WriteByte('\n') // nolint: errcheck
+		buf.WriteByte('\n')
 	}
 
 	return err
