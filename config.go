@@ -3,7 +3,6 @@ package logo
 import (
 	"fmt"
 	"io"
-	"os"
 )
 
 // Config объединяет все параметры кастомизации логгера.
@@ -15,19 +14,7 @@ type Config struct {
 	ServiceName  *string      // Имя сервиса, сквозным образом добавляемое во все записи
 	EncodeCaller EncodeCaller // EncodeCaller задает стратегию форматирования путей к файлам исходного кода.
 	Writer       io.Writer    // Writer определяет целевой поток вывода логов.
-}
-
-// Default возвращает базовый неизменяемый пресет настроек для локальной разработки.
-func Default() *Config {
-	return &Config{
-		Level:        LevelDebug,
-		Format:       FormatJSON,
-		WithCaller:   true,
-		CallerSkip:   1,
-		ServiceName:  nil,
-		EncodeCaller: EncodeCallerSmart,
-		Writer:       os.Stdout,
-	}
+	Middlewares  []Middleware
 }
 
 // Apply последовательно накатывает функциональные опции на текущую структуру конфигурации.
@@ -39,15 +26,6 @@ func (c *Config) Apply(opts ...Option) error {
 	}
 
 	return nil
-}
-
-// DefaultWith создает дефолтный конфиг и сразу модифицирует его переданными опциями.
-func DefaultWith(opts ...Option) (*Config, error) {
-	cfg := Default()
-	if err := cfg.Apply(opts...); err != nil {
-		return nil, fmt.Errorf("apply options: %w", err)
-	}
-	return cfg, nil
 }
 
 // Option инкапсулирует замыкание для безопасной настройки полей Config с валидацией "на лету".
@@ -117,6 +95,20 @@ func WithEncodeCaller(encodeCaller EncodeCaller) Option {
 func WithWriter(writer io.Writer) Option {
 	return func(config *Config) error {
 		config.Writer = writer
+		return nil
+	}
+}
+
+func WithMiddlewares(middlewares ...Middleware) Option {
+	return func(config *Config) error {
+		config.Middlewares = append(config.Middlewares, middlewares...)
+		return nil
+	}
+}
+
+func WithResetMiddlewares(middlewares ...Middleware) Option {
+	return func(config *Config) error {
+		config.Middlewares = middlewares
 		return nil
 	}
 }

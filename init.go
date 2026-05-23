@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/murouse/logo/attr"
-	"github.com/murouse/logo/handlers"
 	"go.uber.org/zap/exp/zapslog"
 )
 
@@ -39,12 +38,7 @@ func Init(opts ...Option) error {
 	}
 
 	// Собираем декораторы (Middleware) по принципу Матрешки (внутри -> наружу).
-	// Порядок применения важен: ContextAttrsHandler должен отработать ДО BufferHandler,
-	// чтобы буфер увидел уже обогащенные контекстом записи.
-	for _, middleware := range []Middleware{
-		handlers.NewContextAttrsHandler,
-		handlers.NewBufferHandler,
-	} {
+	for _, middleware := range cfg.Middlewares {
 		handler = middleware(handler)
 	}
 
