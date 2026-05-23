@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/murouse/logo/attr"
 	"github.com/murouse/logo/handlers"
 	"go.uber.org/zap/exp/zapslog"
 )
@@ -22,7 +23,7 @@ func Init(opts ...Option) error {
 		return fmt.Errorf("default with: %w", err)
 	}
 
-	zapLogger := NewZapLogger(LevelToZapLevel(cfg.Level), cfg.Format) // Создаем производительный фундамент (Zap)
+	zapLogger := NewZapLogger(cfg.Level, cfg.Format, cfg.EncodeCaller, cfg.Writer) // Создаем производительный фундамент (Zap)
 
 	baseHandler := zapslog.NewHandler(
 		zapLogger.Core(),
@@ -34,7 +35,7 @@ func Init(opts ...Option) error {
 
 	// Если задано имя сервиса, пришиваем его к базовому хендлеру
 	if cfg.ServiceName != nil {
-		handler = handler.WithAttrs([]slog.Attr{Service(*cfg.ServiceName)})
+		handler = handler.WithAttrs([]slog.Attr{attr.Service(*cfg.ServiceName)})
 	}
 
 	// Собираем декораторы (Middleware) по принципу Матрешки (внутри -> наружу).

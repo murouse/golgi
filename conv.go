@@ -12,7 +12,17 @@ var zapLevelMap = map[Level]zapcore.Level{
 	LevelError: zapcore.ErrorLevel,
 }
 
-// LevelToZapLevel адаптирует уровни под требования ядра Zap, предотвращая рассинхронизацию шкал.
-func LevelToZapLevel(level Level) zapcore.Level {
-	return zapLevelMap[level]
+// toZap адаптирует уровни под требования ядра Zap, предотвращая рассинхронизацию шкал.
+func (lvl Level) toZap() zapcore.Level {
+	return zapLevelMap[lvl]
+}
+
+var encodeCallerMap = map[EncodeCaller]zapcore.CallerEncoder{
+	EncodeCallerShort: zapcore.ShortCallerEncoder,
+	EncodeCallerFull:  zapcore.FullCallerEncoder,
+	EncodeCallerSmart: SmartCallerEncoder,
+}
+
+func (ce EncodeCaller) toZap() zapcore.CallerEncoder {
+	return encodeCallerMap[ce]
 }

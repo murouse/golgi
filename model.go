@@ -1,6 +1,8 @@
 package logo
 
-import "log/slog"
+import (
+	"log/slog"
+)
 
 // Level абстрагирует строковое представление уровней от внутренней шкалы slog/zap.
 type Level string
@@ -33,3 +35,11 @@ var formatMap = map[Format]struct{}{
 	FormatJSON:    {},
 	FormatConsole: {},
 }
+
+type EncodeCaller string
+
+const (
+	EncodeCallerShort EncodeCaller = "short"
+	EncodeCallerFull  EncodeCaller = "full"
+	EncodeCallerSmart EncodeCaller = "smart"
+)

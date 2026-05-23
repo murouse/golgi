@@ -2,25 +2,31 @@ package logo
 
 import (
 	"fmt"
+	"io"
+	"os"
 )
 
 // Config объединяет все параметры кастомизации логгера.
 type Config struct {
-	Level       Level  // Уровень логирования (строка: debug, info, warn, error)
-	Format      Format // Формат вывода логов (строка: json, console)
-	WithCaller  bool   // Флаг добавления места вызова в лог (file.go:line)
-	CallerSkip  int
-	ServiceName *string // Имя сервиса, сквозным образом добавляемое во все записи
+	Level        Level        // Уровень логирования (строка: debug, info, warn, error)
+	Format       Format       // Формат вывода логов (строка: json, console)
+	WithCaller   bool         // Флаг добавления места вызова в лог (file.go:line)
+	CallerSkip   int          // CallerSkip корректирует смещение кадра стека для точного определения места вызова.
+	ServiceName  *string      // Имя сервиса, сквозным образом добавляемое во все записи
+	EncodeCaller EncodeCaller // EncodeCaller задает стратегию форматирования путей к файлам исходного кода.
+	Writer       io.Writer    // Writer определяет целевой поток вывода логов.
 }
 
 // Default возвращает базовый неизменяемый пресет настроек для локальной разработки.
 func Default() *Config {
 	return &Config{
-		Level:       LevelDebug,
-		Format:      FormatJSON,
-		WithCaller:  true,
-		CallerSkip:  1,
-		ServiceName: nil,
+		Level:        LevelDebug,
+		Format:       FormatJSON,
+		WithCaller:   true,
+		CallerSkip:   1,
+		ServiceName:  nil,
+		EncodeCaller: EncodeCallerSmart,
+		Writer:       os.Stdout,
 	}
 }
 
@@ -87,9 +93,30 @@ func WithCaller(enabled bool) Option {
 	}
 }
 
+// WithCallerSkip изменяет глубину обхода стека вызовов для runtime.Caller.
 func WithCallerSkip(skip int) Option {
 	return func(cfg *Config) error {
 		cfg.CallerSkip = skip
+		return nil
+	}
+}
+
+// WithEncodeCaller проверяет стратегию форматирования путей и сохраняет её в конфиг.
+func WithEncodeCaller(encodeCaller EncodeCaller) Option {
+	return func(config *Config) error {
+		_, ok := encodeCallerMap[encodeCaller]
+		if !ok {
+			return fmt.Errorf("invalid encode caller: %s", encodeCaller)
+		}
+		config.EncodeCaller = encodeCaller
+		return nil
+	}
+}
+
+// WithWriter перенаправляет поток вывода логов в кастомный io.Writer.
+func WithWriter(writer io.Writer) Option {
+	return func(config *Config) error {
+		config.Writer = writer
 		return nil
 	}
 }
