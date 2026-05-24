@@ -12,6 +12,8 @@ const (
 	attrErrorKey     = "error"
 	attrPanicKey     = "panic"
 	attrStackKey     = "stack"
+	attrJobIDKey     = "job_id"
+	attrJobNameKey   = "job_name"
 )
 
 // Component типизирует логируемый архитектурный модуль (например: "postgres", "kafka-consumer").
@@ -41,4 +43,12 @@ func Panic(p any) slog.Attr {
 
 func Stack() slog.Attr {
 	return slog.String(attrStackKey, string(debug.Stack()))
+}
+
+func JobID(id string) slog.Attr {
+	return slog.String(attrJobIDKey, id)
+}
+
+func JobName(name string) slog.Attr {
+	return slog.String(attrJobNameKey, name)
 }
