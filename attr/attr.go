@@ -1,6 +1,7 @@
 package attr
 
 import (
+	"github.com/google/uuid"
 	"log/slog"
 	"runtime/debug"
 )
@@ -45,10 +46,14 @@ func Stack() slog.Attr {
 	return slog.String(attrStackKey, string(debug.Stack()))
 }
 
-func JobID(id string) slog.Attr {
-	return slog.String(attrJobIDKey, id)
+func JobID(id uuid.UUID) slog.Attr {
+	return slog.String(attrJobIDKey, id.String())
 }
 
 func JobName(name string) slog.Attr {
 	return slog.String(attrJobNameKey, name)
+}
+
+func UUID(key string, val uuid.UUID) slog.Attr {
+	return slog.String(key, val.String())
 }
