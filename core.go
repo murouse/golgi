@@ -27,5 +27,6 @@ func NewZapLogger(level Level, format Format, encodeCaller EncodeCaller, writer 
 
 	// Собираем ядро с прямой записью в Stdout
 	core := zapcore.NewCore(encoder, zapcore.AddSync(writer), level.toZap())
+
 	return zap.New(core)
 }

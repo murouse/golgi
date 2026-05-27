@@ -28,6 +28,7 @@ func Init(opts ...Option) error {
 		zapLogger.Core(),
 		zapslog.WithCaller(cfg.WithCaller),
 		zapslog.WithCallerSkip(cfg.CallerSkip),
+		zapslog.AddStacktraceAt(slog.LevelError+1), // отключаем стектрейс для error
 	) // Создаем адаптер-мост из zap в стандартный интерфейс slog.Handler
 
 	handler := slog.Handler(baseHandler) // Приведение к интерфейсу slog.Handler необходимо, чтобыMiddleware-обертки могли прозрачно мутировать типы
