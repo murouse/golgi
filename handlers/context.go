@@ -23,3 +23,11 @@ func (h *ContextAttrsHandler) Handle(ctx context.Context, r slog.Record) error {
 	r.AddAttrs(logctx.AttrsFromContext(ctx)...)
 	return h.Handler.Handle(ctx, r)
 }
+
+func (h *ContextAttrsHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &ContextAttrsHandler{Handler: h.Handler.WithAttrs(attrs)}
+}
+
+func (h *ContextAttrsHandler) WithGroup(name string) slog.Handler {
+	return &ContextAttrsHandler{Handler: h.Handler.WithGroup(name)}
+}

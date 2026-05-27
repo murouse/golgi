@@ -73,3 +73,11 @@ func (h *BufferHandler) Handle(ctx context.Context, rec slog.Record) error {
 
 	return err
 }
+
+func (h *BufferHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &BufferHandler{Handler: h.Handler.WithAttrs(attrs)}
+}
+
+func (h *BufferHandler) WithGroup(name string) slog.Handler {
+	return &BufferHandler{Handler: h.Handler.WithGroup(name)}
+}
