@@ -1,10 +1,10 @@
-package logo
+package golgi
 
 import (
 	"fmt"
 	"log/slog"
 
-	"github.com/murouse/logo/attr"
+	"github.com/murouse/golgi/attr"
 	"go.uber.org/zap/exp/zapslog"
 )
 

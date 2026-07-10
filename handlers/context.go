@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/murouse/logo/logctx"
+	"github.com/murouse/golgi/logctx"
 	"github.com/samber/lo"
 )
 

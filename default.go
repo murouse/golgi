@@ -1,10 +1,10 @@
-package logo
+package golgi
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/murouse/logo/handlers"
+	"github.com/murouse/golgi/handlers"
 )
 
 // Default возвращает базовый неизменяемый пресет настроек для локальной разработки.

@@ -1,4 +1,4 @@
-package logo
+package golgi
 
 import (
 	"go.uber.org/zap/zapcore"

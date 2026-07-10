@@ -1,4 +1,4 @@
-module github.com/murouse/logo
+module github.com/murouse/golgi
 
 go 1.25.0
 

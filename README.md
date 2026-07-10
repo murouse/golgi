@@ -1,4 +1,4 @@
-# logo
+# golgi
 
 Минималистичная, высокопроизводительная обертка над стандартным `log/slog`. Использует **Uber Zap** в качестве быстрого движка («frontend» — `slog`, «backend» — `zap`) и предоставляет удобный конвейер (Middleware) для работы с контекстом.
 
@@ -20,22 +20,22 @@ package main
 
 import (
 	"log/slog"
-	"github.com/murouse/logo"
+	"github.com/murouse/golgi"
 )
 
 func main() {
 	// Инициализация логгера (обычно на старте приложения)
-	err := logo.Init(
-		logo.WithServiceName("rack-reservation-service"),
-		logo.WithLevel(logo.LevelInfo),
-		logo.WithFormat(logo.FormatJSON),
+	err := golgi.Init(
+		golgi.WithServiceName("rack-reservation-service"),
+		golgi.WithLevel(golgi.LevelInfo),
+		golgi.WithFormat(golgi.FormatJSON),
 	)
 	if err != nil {
 		panic(err)
 	}
 
 	// Использование стандартного slog API
-	slog.Info("сервис успешно запущен", logo.Component("main"))
+	slog.Info("сервис успешно запущен", golgi.Component("main"))
 }
 
 ```
@@ -51,10 +51,10 @@ func main() {
 ```go
 func HandleOrder(ctx context.Context, orderID int) {
 	// Прошиваем ID заказа в контекст
-	ctx = logo.WithAttrs(ctx, slog.Int("order_id", orderID))
+	ctx = golgi.WithAttrs(ctx, slog.Int("order_id", orderID))
 
 	// В логе автоматически будет и service, и component, и order_id
-	slog.InfoContext(ctx, "обработка заказа началась", logo.Component("worker"))
+	slog.InfoContext(ctx, "обработка заказа началась", golgi.Component("worker"))
 }
 
 ```
@@ -66,14 +66,14 @@ func HandleOrder(ctx context.Context, orderID int) {
 ```go
 func ProcessTask(ctx context.Context) {
 	// Активируем буфер для этого контекста
-	ctx, buf := logo.WithBufferLog(ctx)
+	ctx, buf := golgi.WithBufferLog(ctx)
 
 	slog.InfoContext(ctx, "шаг 1 выполнен")
 	slog.InfoContext(ctx, "шаг 2 выполнен")
 
 	// Если что-то пошло не так, у вас есть весь слепок логов операции
 	if err := doSomething(); err != nil {
-		slog.ErrorContext(ctx, "ошибка процесса", logo.Error(err))
+		slog.ErrorContext(ctx, "ошибка процесса", golgi.Error(err))
 		
 		// buf.Bytes() содержит плоский текст всех логов, прошедших через этот ctx
 		saveDumpToDatabase(buf.Bytes()) 
@@ -92,11 +92,11 @@ $$\text{slog.Record} \longrightarrow \underbrace{\text{ContextAttrsHandler}}_{\t
 
 ## Конфигурация
 
-Доступные опции для `logo.Init()`:
+Доступные опции для `golgi.Init()`:
 
 | Опция | Тип | Дефолт | Описание |
 | --- | --- | --- | --- |
-| `WithLevel()` | `logo.Level` | `"debug"` | `debug`, `info`, `warn`, `error` |
-| `WithFormat()` | `logo.Format` | `"json"` | `"json"` или `"console"` |
+| `WithLevel()` | `golgi.Level` | `"debug"` | `debug`, `info`, `warn`, `error` |
+| `WithFormat()` | `golgi.Format` | `"json"` | `"json"` или `"console"` |
 | `WithCaller()` | `bool` | `true` | Добавляет строку вызова лога в код |
 | `WithServiceName()` | `string` | `""` | Добавляет поле `service` во все логи |

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/murouse/logo/logctx"
+	"github.com/murouse/golgi/logctx"
 )
 
 // Byter предоставляет потокобезопасный доступ к накопленным байтам лога в рамках одной бизнес-операции.
